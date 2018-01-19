@@ -99,3 +99,8 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Hack tweet stuff
+hack-tweet-project/set_env.sh
+hack-tweet-project/*.sqlite
+hack-tweet-project/classifier.pickle
