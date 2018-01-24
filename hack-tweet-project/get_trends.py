@@ -2,6 +2,10 @@ import os
 import sys
 import twitter
 import sqlite3
+import gevent
+from gevent.queue import Queue, Empty
+
+tasks = Queue(maxsize=50)
 
 def get_twitter_creds():
     '''
@@ -70,7 +74,6 @@ def set_trends_and_tweets(api, cursor):
             if status.truncated:
                 continue
             write_to_tweet_table(cursor, trend.name, status.id, status.text.encode('utf-8'))
-        # import ipdb; ipdb.set_trace()
         # print "tweets:"
         # print searched_tweets
         # # need the id, text
@@ -84,7 +87,7 @@ if __name__ == "__main__":
     try:
         twitter_creds = get_twitter_creds()
     except KeyError:
-        print "You fool you didn't set the env vars"
+        print "Please make sure the Twitter creds are set in the env"
         sys.exit(1)
     api = get_twitter_api(twitter_creds=twitter_creds)
     set_trends_and_tweets(api, c)
