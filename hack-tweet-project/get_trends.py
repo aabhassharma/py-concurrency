@@ -4,8 +4,16 @@ import twitter
 import sqlite3
 import gevent
 from gevent.queue import Queue, Empty
+import logging
 
 tasks = Queue(maxsize=50)
+logger = logging.getLogger('get_trends')
+streamHandler = logging.StreamHandler()
+streamHandler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %message)s')
+streamHandler.setFormatter(formatter)
+
+logger.addHandler(streamHandler)
 
 def get_twitter_creds():
     '''
@@ -51,12 +59,15 @@ def set_trends_and_tweets(api, cursor):
     for trend in trending_articles:
         # I don't want the bullshit that has any promoted content with it
         if trend.promoted_content:
+            logger.info('Found promoted content in trend {}'.format(trend))
             continue
         # There's some unsanitized data in here
         # Simple sanitation
         if "\\" in trend.name:
+            logger.info('Found unsanitized data content in trend {}'.format(trend))
             continue
         if not is_ascii(trend.name):
+            logger.info('Found non ASCII content in trend {}'.format(trend))
             continue
         # Find the most popular tweets that are mentioning this trend
         # But I also want to limit it to within 500 miles of my location
@@ -66,19 +77,17 @@ def set_trends_and_tweets(api, cursor):
             result_type="popular")
         # Got empty list, skip
         if not searched_tweets:
+            logger.info('Found no tweets for trend {}'.format(trend))
             continue
         # VOILA! You have the most popular tweets within 100 miles of my location
         # that are referencing the most popular trending hashtags right Now
         for status in searched_tweets:
             # skip truncated text ugh API constraints
             if status.truncated:
+                logger.info('Found truncated text in status {}'.format(status))
                 continue
-            write_to_tweet_table(cursor, trend.name, status.id, status.text.encode('utf-8'))
-        # print "tweets:"
-        # print searched_tweets
-        # # need the id, text
-        # print "trend:"
-        # print trend.name
+            # write_to_tweet_table(cursor, trend.name, status.id, status.text.encode('utf-8'))
+
 
 if __name__ == "__main__":
     sqlite_file = 'tweet_db.sqlite'
